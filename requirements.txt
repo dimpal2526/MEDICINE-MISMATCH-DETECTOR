@@ -1,10 +1,5 @@
 streamlit
 pandas
+numpy
 matplotlib
 scikit-learn
-numpy
-seaborn
-xgboost
-torch
-tensorflow
-rdkit-pypi
