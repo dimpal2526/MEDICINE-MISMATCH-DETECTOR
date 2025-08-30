@@ -49,19 +49,30 @@ def map_disease(text):
     return "Other/Unknown"
 
 # -----------------------------
+# Cached Data Loader
+# -----------------------------
+@st.cache_data
+def load_data(file):
+    if file.name.endswith(".csv"):
+        return pd.read_csv(file)
+    else:
+        return pd.read_excel(file)
+
+# -----------------------------
 # File Upload
 # -----------------------------
 uploaded_file = st.file_uploader("📂 Upload your medicine dataset (CSV/Excel)", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
-    # Load dataset
-    if uploaded_file.name.endswith(".csv"):
-        df = pd.read_csv(uploaded_file)
-    else:
-        df = pd.read_excel(uploaded_file)
+    # Load dataset with caching
+    df = load_data(uploaded_file)
 
     st.subheader("📄 Dataset Preview")
-    st.dataframe(df.head())
+    st.dataframe(df.head(50))   # सिर्फ़ 50 rows show
+
+    # Optional full dataset view
+    if st.checkbox("Show full dataset"):
+        st.dataframe(df)
 
     # -----------------------------
     # Auto-map dataset if columns differ
@@ -117,11 +128,11 @@ if uploaded_file is not None:
 
     with col1:
         st.success("✅ Matched Medicines")
-        st.dataframe(matched)
+        st.dataframe(matched.head(50))  # सिर्फ़ 50 rows preview
 
     with col2:
         st.error("❌ Mismatched Medicines")
-        st.dataframe(mismatched)
+        st.dataframe(mismatched.head(50))
 
     # -----------------------------
     # 📊 Summary Counts
@@ -132,9 +143,11 @@ if uploaded_file is not None:
     st.write(f"✅ Matches: {status_count.get('Match',0)} | ❌ Mismatches: {status_count.get('Mismatch',0)}")
 
     # -----------------------------
-    # 📊 Bar Chart
+    # 📊 Bar Chart (Sample for performance)
     # -----------------------------
     st.subheader("📊 Match vs Mismatch (Bar Chart)")
+    sample_df = df.sample(5000) if len(df) > 5000 else df
+    status_count = sample_df["Status"].value_counts()
     fig, ax = plt.subplots()
     status_count.plot(kind="bar", ax=ax, color=["green", "red"])
     ax.set_ylabel("Count")
@@ -145,22 +158,22 @@ if uploaded_file is not None:
     # 📈 Line Chart (Trend)
     # -----------------------------
     st.subheader("📈 Match vs Mismatch Trend")
-    df["StatusNumeric"] = df["Status"].apply(lambda x: 1 if x == "Match" else 0)
-    st.line_chart(df["StatusNumeric"])
+    sample_df["StatusNumeric"] = sample_df["Status"].apply(lambda x: 1 if x == "Match" else 0)
+    st.line_chart(sample_df["StatusNumeric"])
 
     # -----------------------------
     # 🩺 Disease Analysis
     # -----------------------------
     st.subheader("🩺 Disease-wise Medicine Analysis")
-    disease_count = df["Disease"].value_counts()
+    disease_count = sample_df["Disease"].value_counts()
     fig2, ax2 = plt.subplots()
     disease_count.plot(kind="bar", ax=ax2, color="skyblue")
     ax2.set_ylabel("Count")
-    ax2.set_title("Diseases Covered by Dataset")
+    ax2.set_title("Diseases Covered by Dataset (Sampled)")
     st.pyplot(fig2)
 
     # -----------------------------
     # 📊 Filtered Dataset
     # -----------------------------
     st.subheader("📊 Filtered Dataset (After Applying Filters)")
-    st.dataframe(df)
+    st.dataframe(df.head(100))  # सिर्फ़ 100 rows show
